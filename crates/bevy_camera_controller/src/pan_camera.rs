@@ -9,12 +9,13 @@ use bevy_app::{App, Plugin, RunFixedMainLoop, RunFixedMainLoopSystems};
 use bevy_camera::Camera;
 use bevy_ecs::prelude::*;
 use bevy_input::keyboard::KeyCode;
-use bevy_input::mouse::{AccumulatedMouseScroll, MouseScrollUnit};
+use bevy_input::mouse::{AccumulatedMouseScroll, MouseButton, MouseScrollUnit};
 use bevy_input::ButtonInput;
 use bevy_math::{Vec2, Vec3};
+use bevy_picking::events::{Drag, Pointer};
 use bevy_time::{Real, Time};
+use bevy_transform::components::GlobalTransform;
 use bevy_transform::prelude::Transform;
-
 use core::{f32::consts::*, fmt};
 
 /// A plugin that enables 2D camera panning and zooming controls.
@@ -28,7 +29,8 @@ impl Plugin for PanCameraPlugin {
         app.add_systems(
             RunFixedMainLoop,
             run_pancamera_controller.in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
-        );
+        )
+        .add_observer(handle_mouse_pan);
     }
 }
 
@@ -68,6 +70,16 @@ pub struct PanCamera {
     pub key_rotate_ccw: Option<KeyCode>,
     /// [`KeyCode`] for clockwise rotation.
     pub key_rotate_cw: Option<KeyCode>,
+    /// Mouse pan settings.
+    pub mouse_pan_settings: MousePanSettings,
+}
+
+/// Settings for mouse panning for the [`PanCamera`] controller.
+pub struct MousePanSettings {
+    /// Whether the mouse panning is enabled.
+    pub enabled: bool,
+    /// The mouse button to use for panning.
+    pub button: MouseButton,
 }
 
 /// Provides the default values for the `PanCamera` controller.
@@ -105,6 +117,10 @@ impl Default for PanCamera {
             rotation_speed: PI,
             key_rotate_ccw: Some(KeyCode::KeyQ),
             key_rotate_cw: Some(KeyCode::KeyE),
+            mouse_pan_settings: MousePanSettings {
+                enabled: true,
+                button: MouseButton::Left,
+            },
         }
     }
 }
@@ -234,4 +250,31 @@ fn run_pancamera_controller(
         (controller.zoom_factor - zoom_amount).clamp(controller.min_zoom, controller.max_zoom);
 
     transform.scale = Vec3::splat(controller.zoom_factor);
+}
+
+fn handle_mouse_pan(
+    drag: On<Pointer<Drag>>,
+    mut pan_cameras: Query<(&Camera, &GlobalTransform, &mut Transform, &PanCamera)>,
+) {
+    for (camera, global_transform, mut transform, pan_camera_controller) in pan_cameras.iter_mut() {
+        if !pan_camera_controller.enabled || !pan_camera_controller.mouse_pan_settings.enabled {
+            return;
+        }
+
+        let Ok(camera_screen_position) =
+            camera.world_to_viewport(global_transform, transform.translation)
+        else {
+            continue;
+        };
+
+        let offset_camera_screen_position = camera_screen_position + drag.delta * -1.; // inverted feels more natural
+
+        let Ok(new_camera_position) =
+            camera.viewport_to_world_2d(global_transform, offset_camera_screen_position)
+        else {
+            continue;
+        };
+
+        transform.translation = new_camera_position.extend(transform.translation.z);
+    }
 }
