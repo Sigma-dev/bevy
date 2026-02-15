@@ -6,7 +6,7 @@
 //! To configure the settings of this controller, modify the fields of the [`PanCamera`] component.
 
 use bevy_app::{App, Plugin, RunFixedMainLoop, RunFixedMainLoopSystems};
-use bevy_camera::Camera;
+use bevy_camera::{Camera, RenderTarget};
 use bevy_ecs::prelude::*;
 use bevy_input::keyboard::KeyCode;
 use bevy_input::mouse::{AccumulatedMouseScroll, MouseButton, MouseScrollUnit};
@@ -16,6 +16,7 @@ use bevy_picking::events::{Drag, Pointer};
 use bevy_time::{Real, Time};
 use bevy_transform::components::GlobalTransform;
 use bevy_transform::prelude::Transform;
+use bevy_window::{PrimaryWindow, WindowRef};
 use core::{f32::consts::*, fmt};
 
 /// A plugin that enables 2D camera panning and zooming controls.
@@ -30,7 +31,7 @@ impl Plugin for PanCameraPlugin {
             RunFixedMainLoop,
             run_pancamera_controller.in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
         )
-        .add_observer(handle_mouse_pan);
+        .add_observer(add_window_observer);
     }
 }
 
@@ -250,6 +251,30 @@ fn run_pancamera_controller(
         (controller.zoom_factor - zoom_amount).clamp(controller.min_zoom, controller.max_zoom);
 
     transform.scale = Vec3::splat(controller.zoom_factor);
+}
+
+fn add_window_observer(
+    insert: On<Insert, PanCamera>,
+    mut commands: Commands,
+    camera: Query<&RenderTarget>,
+    primary_window: Single<Entity, With<PrimaryWindow>>,
+) {
+    let Ok(render_target) = camera.get(insert.entity) else {
+        return;
+    };
+
+    if let RenderTarget::Window(window) = render_target {
+        match window {
+            WindowRef::Primary => {
+                commands
+                    .entity(primary_window.entity())
+                    .observe(handle_mouse_pan);
+            }
+            WindowRef::Entity(entity) => {
+                commands.entity(*entity).observe(handle_mouse_pan);
+            }
+        }
+    }
 }
 
 fn handle_mouse_pan(
