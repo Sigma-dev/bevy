@@ -7,12 +7,13 @@
 
 use bevy_app::{App, Plugin, RunFixedMainLoop, RunFixedMainLoopSystems};
 use bevy_camera::{Camera, RenderTarget};
+use bevy_ecs::observer::ObservedBy;
 use bevy_ecs::prelude::*;
 use bevy_input::keyboard::KeyCode;
 use bevy_input::mouse::{AccumulatedMouseScroll, MouseButton, MouseScrollUnit};
 use bevy_input::ButtonInput;
 use bevy_math::{Vec2, Vec3};
-use bevy_picking::events::{Drag, Pointer};
+use bevy_picking::events::{Drag, DragEnd, DragStart, Pointer};
 use bevy_time::{Real, Time};
 use bevy_transform::components::GlobalTransform;
 use bevy_transform::prelude::Transform;
@@ -31,7 +32,8 @@ impl Plugin for PanCameraPlugin {
             RunFixedMainLoop,
             run_pancamera_controller.in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
         )
-        .add_observer(add_window_observer);
+        .add_observer(add_window_observer)
+        .add_observer(remove_window_observer);
     }
 }
 
@@ -254,24 +256,38 @@ fn run_pancamera_controller(
 }
 
 fn add_window_observer(
-    insert: On<Insert, PanCamera>,
+    drag_start: On<Pointer<DragStart>>,
     mut commands: Commands,
-    camera: Query<&RenderTarget>,
+    render_targets: Query<&RenderTarget, With<PanCamera>>,
     primary_window: Single<Entity, With<PrimaryWindow>>,
 ) {
-    let Ok(render_target) = camera.get(insert.entity) else {
-        return;
-    };
-
-    if let RenderTarget::Window(window) = render_target {
-        match window {
-            WindowRef::Primary => {
-                commands
-                    .entity(primary_window.entity())
-                    .observe(handle_mouse_pan);
+    for render_target in render_targets.iter() {
+        if let RenderTarget::Window(window) = render_target {
+            let entity = match window {
+                WindowRef::Primary => primary_window.entity(),
+                WindowRef::Entity(entity) => *entity,
+            };
+            if entity == drag_start.entity {
+                commands.entity(entity).observe(handle_mouse_pan);
             }
-            WindowRef::Entity(entity) => {
-                commands.entity(*entity).observe(handle_mouse_pan);
+        }
+    }
+}
+
+fn remove_window_observer(
+    drag_end: On<Pointer<DragEnd>>,
+    mut commands: Commands,
+    render_targets: Query<&RenderTarget, With<PanCamera>>,
+    primary_window: Single<Entity, With<PrimaryWindow>>,
+) {
+    for render_target in render_targets.iter() {
+        if let RenderTarget::Window(window) = render_target {
+            let entity = match window {
+                WindowRef::Primary => primary_window.entity(),
+                WindowRef::Entity(entity) => *entity,
+            };
+            if entity == drag_end.entity {
+                commands.entity(entity).remove::<ObservedBy>();
             }
         }
     }
