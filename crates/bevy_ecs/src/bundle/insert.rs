@@ -336,7 +336,7 @@ impl<'w> BundleInserter<'w> {
     /// - `entity` must currently exist in the source archetype for this inserter.
     /// - `location` must be `entity`'s location in the archetype.
     /// - `T` must match this [`BundleInserter`] type used to create
-    /// - If `T::Effect: !NoBundleEffect.`, then [`apply_effect`] must be called at most once on
+    /// - If `T: !NoBundleEffect`, then [`apply_effect`] must be called at most once on
     ///   `bundle` after this function before returning to user-space safe code.
     /// - The value pointed to by `bundle` must not be accessed for anything other than [`apply_effect`]
     ///   or dropped.

@@ -2325,7 +2325,6 @@ unsafe fn insert_dynamic_bundle<
     impl<'a, I: Iterator<Item = (StorageType, OwningPtr<'a>)>> DynamicBundle
         for DynamicInsertBundle<'a, I>
     {
-        type Effect = ();
         unsafe fn get_components(
             mut ptr: MovingPtr<'_, Self>,
             func: &mut impl FnMut(StorageType, OwningPtr<'_>),

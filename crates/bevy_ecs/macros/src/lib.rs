@@ -150,7 +150,6 @@ pub fn derive_bundle(input: TokenStream) -> TokenStream {
 
     let dynamic_bundle_impl = quote! {
         impl #impl_generics #ecs_path::bundle::DynamicBundle for #struct_name #ty_generics #where_clause {
-            type Effect = ();
             #[allow(unused_variables)]
             #[inline]
             unsafe fn get_components(
@@ -176,8 +175,26 @@ pub fn derive_bundle(input: TokenStream) -> TokenStream {
                 ptr: #ecs_path::ptr::MovingPtr<'_, ::core::mem::MaybeUninit<Self>>,
                 func: &mut #ecs_path::world::EntityWorldMut<'_>,
             ) {
+                use ::core::mem::MaybeUninit;
+
+                #ecs_path::ptr::deconstruct_moving_ptr!({
+                    let MaybeUninit::<#struct_name> { #(#active_field_members: #active_field_locals,)* #(#inactive_field_members: _,)* } = ptr;
+                });
+                #[allow(unused_unsafe)]
+                unsafe {
+                    #(
+                        <#active_field_types as #ecs_path::bundle::DynamicBundle>::apply_effect(
+                            #active_field_locals,
+                            func
+                        );
+                    )*
+                }
             }
         }
+    };
+
+    let no_bundle_effect_impl = quote! {
+        impl #impl_generics #ecs_path::bundle::NoBundleEffect for #struct_name #ty_generics #where_clause {}
     };
 
     let from_components_impl = attributes.impl_from_components.then(|| quote! {
@@ -200,6 +217,7 @@ pub fn derive_bundle(input: TokenStream) -> TokenStream {
         #bundle_impl
         #from_components_impl
         #dynamic_bundle_impl
+        #no_bundle_effect_impl
     })
 }
 

@@ -15,7 +15,7 @@ use core::iter::FusedIterator;
 pub struct SpawnBatchIter<'w, I>
 where
     I: Iterator,
-    I::Item: Bundle<Effect: NoBundleEffect>,
+    I::Item: Bundle + NoBundleEffect,
 {
     inner: I,
     spawner: BundleSpawner<'w>,
@@ -26,7 +26,7 @@ where
 impl<'w, I> SpawnBatchIter<'w, I>
 where
     I: Iterator,
-    I::Item: Bundle<Effect: NoBundleEffect>,
+    I::Item: Bundle + NoBundleEffect,
 {
     #[inline]
     #[track_caller]
@@ -52,7 +52,7 @@ where
 impl<I> Drop for SpawnBatchIter<'_, I>
 where
     I: Iterator,
-    I::Item: Bundle<Effect: NoBundleEffect>,
+    I::Item: Bundle + NoBundleEffect,
 {
     fn drop(&mut self) {
         // Iterate through self in order to spawn remaining bundles.
@@ -66,7 +66,7 @@ where
 impl<I> Iterator for SpawnBatchIter<'_, I>
 where
     I: Iterator,
-    I::Item: Bundle<Effect: NoBundleEffect>,
+    I::Item: Bundle + NoBundleEffect,
 {
     type Item = Entity;
 
@@ -93,7 +93,7 @@ where
 impl<I, T> ExactSizeIterator for SpawnBatchIter<'_, I>
 where
     I: ExactSizeIterator<Item = T>,
-    T: Bundle<Effect: NoBundleEffect>,
+    T: Bundle + NoBundleEffect,
 {
     fn len(&self) -> usize {
         self.inner.len()
@@ -103,7 +103,7 @@ where
 impl<I, T> FusedIterator for SpawnBatchIter<'_, I>
 where
     I: FusedIterator<Item = T>,
-    T: Bundle<Effect: NoBundleEffect>,
+    T: Bundle + NoBundleEffect,
 {
 }
 
@@ -111,6 +111,6 @@ where
 unsafe impl<I: Iterator, T> EntitySetIterator for SpawnBatchIter<'_, I>
 where
     I: FusedIterator<Item = T>,
-    T: Bundle<Effect: NoBundleEffect>,
+    T: Bundle + NoBundleEffect,
 {
 }

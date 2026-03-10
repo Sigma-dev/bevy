@@ -55,7 +55,7 @@ pub trait SpawnableList<R>: Sized {
     fn size_hint(&self) -> usize;
 }
 
-impl<R: Relationship, B: Bundle<Effect: NoBundleEffect>> SpawnableList<R> for Vec<B> {
+impl<R: Relationship, B: Bundle + NoBundleEffect> SpawnableList<R> for Vec<B> {
     fn spawn(ptr: MovingPtr<'_, Self>, world: &mut World, entity: Entity) {
         let mapped_bundles = ptr.read().into_iter().map(|b| (R::from(entity), b));
         world.spawn_batch(mapped_bundles);
@@ -312,8 +312,6 @@ unsafe impl<R: Relationship, L: SpawnableList<R> + Send + Sync + 'static> Bundle
 }
 
 impl<R: Relationship, L: SpawnableList<R>> DynamicBundle for SpawnRelatedBundle<R, L> {
-    type Effect = Self;
-
     unsafe fn get_components(
         ptr: MovingPtr<'_, Self>,
         func: &mut impl FnMut(crate::component::StorageType, bevy_ptr::OwningPtr<'_>),
@@ -325,7 +323,7 @@ impl<R: Relationship, L: SpawnableList<R>> DynamicBundle for SpawnRelatedBundle<
         // - The caller must ensure that this is called exactly once before `apply_effect`.
         // - Assuming `DynamicBundle` is implemented correctly for `R::Relationship` target, `func` should be
         //   called exactly once for each component being fetched with the correct `StorageType`
-        // - `Effect: !NoBundleEffect`, which means the caller is responsible for calling this type's `apply_effect`
+        // - `Self: !NoBundleEffect`, which means the caller is responsible for calling this type's `apply_effect`
         //   at least once before returning to safe code.
         unsafe { <R::RelationshipTarget as DynamicBundle>::get_components(target, func) };
         // Forget the pointer so that the value is available in `apply_effect`.
@@ -362,8 +360,6 @@ pub struct SpawnOneRelated<R: Relationship, B: Bundle> {
 }
 
 impl<R: Relationship, B: Bundle> DynamicBundle for SpawnOneRelated<R, B> {
-    type Effect = Self;
-
     unsafe fn get_components(
         ptr: MovingPtr<'_, Self>,
         func: &mut impl FnMut(crate::component::StorageType, bevy_ptr::OwningPtr<'_>),
@@ -374,7 +370,7 @@ impl<R: Relationship, B: Bundle> DynamicBundle for SpawnOneRelated<R, B> {
         // - The caller must ensure that this is called exactly once before `apply_effect`.
         // - Assuming `DynamicBundle` is implemented correctly for `R::Relationship` target, `func` should be
         //   called exactly once for each component being fetched with the correct `StorageType`
-        // - `Effect: !NoBundleEffect`, which means the caller is responsible for calling this type's `apply_effect`
+        // - `Self: !NoBundleEffect`, which means the caller is responsible for calling this type's `apply_effect`
         //   at least once before returning to safe code.
         unsafe { <R::RelationshipTarget as DynamicBundle>::get_components(target, func) };
         // Forget the pointer so that the value is available in `apply_effect`.
@@ -409,7 +405,7 @@ unsafe impl<R: Relationship, B: Bundle> Bundle for SpawnOneRelated<R, B> {
     }
 }
 
-/// [`RelationshipTarget`] methods that create a [`Bundle`] with a [`DynamicBundle::Effect`] that:
+/// [`RelationshipTarget`] methods that create a [`Bundle`] that:
 ///
 /// 1. Contains the [`RelationshipTarget`] component, pre-allocated with the necessary space for spawned entities.
 /// 2. Spawns an entity (or a list of entities) that relate to the entity the [`Bundle`] is added to via the [`RelationshipTarget::Relationship`].

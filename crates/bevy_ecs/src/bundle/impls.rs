@@ -41,18 +41,19 @@ unsafe impl<C: Component> BundleFromComponents for C {
 }
 
 impl<C: Component> DynamicBundle for C {
-    type Effect = ();
     #[inline]
     unsafe fn get_components(
         ptr: MovingPtr<'_, Self>,
         func: &mut impl FnMut(StorageType, OwningPtr<'_>),
-    ) -> Self::Effect {
+    ) {
         func(C::STORAGE_TYPE, OwningPtr::from(ptr));
     }
 
     #[inline]
     unsafe fn apply_effect(_ptr: MovingPtr<'_, MaybeUninit<Self>>, _entity: &mut EntityWorldMut) {}
 }
+
+impl<C: Component> NoBundleEffect for C {}
 
 macro_rules! tuple_impl {
     ($(#[$meta:meta])* $(($index:tt, $name: ident, $alias: ident)),*) => {
@@ -128,7 +129,6 @@ macro_rules! tuple_impl {
         )]
         $(#[$meta])*
         impl<$($name: Bundle),*> DynamicBundle for ($($name,)*) {
-            type Effect = ($($name::Effect,)*);
             #[allow(
                 clippy::unused_unit,
                 reason = "Zero-length tuples will generate a function body equivalent to `()`; however, this macro is meant for all applicable tuples, and as such it makes no sense to rewrite it just for that case."

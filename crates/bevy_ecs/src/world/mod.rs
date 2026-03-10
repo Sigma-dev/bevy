@@ -1130,7 +1130,7 @@ impl World {
             // SAFETY:
             // - `B` matches `bundle_spawner`'s type
             // -  `entity` is allocated but non-existent
-            // - `B::Effect` is unconstrained, and `B::apply_effect` is called exactly once on the bundle after this call.
+            // - `B` may or may not implement `NoBundleEffect`, and `B::apply_effect` is called exactly once on the bundle after this call.
             // - This function ensures that the value pointed to by `bundle` must not be accessed for anything afterwards by consuming
             //   the `MovingPtr`. The value is otherwise only used to call `apply_effect` within this function, and the safety invariants
             //   of `DynamicBundle` ensure that only the elements that have not been moved out of by this call are accessed.
@@ -1339,7 +1339,7 @@ impl World {
     pub fn spawn_batch<I>(&mut self, iter: I) -> SpawnBatchIter<'_, I::IntoIter>
     where
         I: IntoIterator,
-        I::Item: Bundle<Effect: NoBundleEffect>,
+        I::Item: Bundle + NoBundleEffect,
     {
         SpawnBatchIter::new(self, iter.into_iter(), MaybeLocation::caller())
     }
@@ -2424,7 +2424,7 @@ impl World {
     where
         I: IntoIterator,
         I::IntoIter: Iterator<Item = (Entity, B)>,
-        B: Bundle<Effect: NoBundleEffect>,
+        B: Bundle + NoBundleEffect,
     {
         self.insert_batch_with_caller(batch, InsertMode::Replace, MaybeLocation::caller());
     }
@@ -2449,7 +2449,7 @@ impl World {
     where
         I: IntoIterator,
         I::IntoIter: Iterator<Item = (Entity, B)>,
-        B: Bundle<Effect: NoBundleEffect>,
+        B: Bundle + NoBundleEffect,
     {
         self.insert_batch_with_caller(batch, InsertMode::Keep, MaybeLocation::caller());
     }
@@ -2468,7 +2468,7 @@ impl World {
     ) where
         I: IntoIterator,
         I::IntoIter: Iterator<Item = (Entity, B)>,
-        B: Bundle<Effect: NoBundleEffect>,
+        B: Bundle + NoBundleEffect,
     {
         struct InserterArchetypeCache<'w> {
             inserter: BundleInserter<'w>,
@@ -2569,7 +2569,7 @@ impl World {
     where
         I: IntoIterator,
         I::IntoIter: Iterator<Item = (Entity, B)>,
-        B: Bundle<Effect: NoBundleEffect>,
+        B: Bundle + NoBundleEffect,
     {
         self.try_insert_batch_with_caller(batch, InsertMode::Replace, MaybeLocation::caller())
     }
@@ -2591,7 +2591,7 @@ impl World {
     where
         I: IntoIterator,
         I::IntoIter: Iterator<Item = (Entity, B)>,
-        B: Bundle<Effect: NoBundleEffect>,
+        B: Bundle + NoBundleEffect,
     {
         self.try_insert_batch_with_caller(batch, InsertMode::Keep, MaybeLocation::caller())
     }
@@ -2615,7 +2615,7 @@ impl World {
     where
         I: IntoIterator,
         I::IntoIter: Iterator<Item = (Entity, B)>,
-        B: Bundle<Effect: NoBundleEffect>,
+        B: Bundle + NoBundleEffect,
     {
         struct InserterArchetypeCache<'w> {
             inserter: BundleInserter<'w>,

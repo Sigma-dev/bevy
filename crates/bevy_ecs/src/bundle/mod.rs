@@ -245,16 +245,13 @@ pub unsafe trait BundleFromComponents {
 
 /// The parts from [`Bundle`] that don't require statically knowing the components of the bundle.
 pub trait DynamicBundle: Sized {
-    /// An operation on the entity that happens _after_ inserting this bundle.
-    type Effect;
-
     /// Moves the components out of the bundle.
     ///
     /// # Safety
     /// For callers:
     /// - Must be called exactly once before `apply_effect`
     /// - The `StorageType` argument passed into `func` must be correct for the component being fetched.
-    /// - `apply_effect` must be called exactly once after this has been called if `Effect: !NoBundleEffect`
+    /// - `apply_effect` must be called exactly once after this has been called unless `Self: NoBundleEffect`
     ///
     /// For implementors:
     ///  - Implementors of this function must convert `ptr` into pointers to individual components stored within
@@ -297,6 +294,7 @@ pub trait DynamicBundle: Sized {
     unsafe fn apply_effect(ptr: MovingPtr<'_, MaybeUninit<Self>>, entity: &mut EntityWorldMut);
 }
 
-/// A trait implemented for [`DynamicBundle::Effect`] implementations that do nothing. This is used as a type constraint for
-/// [`Bundle`] APIs that do not / cannot run [`DynamicBundle::Effect`], such as "batch spawn" APIs.
+/// A trait implemented for [`Bundle`] types whose [`DynamicBundle::apply_effect`] implementation is a no-op.
+/// This is used as a type constraint for [`Bundle`] APIs that do not or cannot run bundle effects,
+/// such as "batch spawn" APIs.
 pub trait NoBundleEffect {}

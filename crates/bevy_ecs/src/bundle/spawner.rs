@@ -80,7 +80,7 @@ impl<'w> BundleSpawner<'w> {
     /// # Safety
     /// - `entity` must be allocated (but non-existent),
     /// - `T` must match this [`BundleSpawner`]'s type
-    /// - If `T::Effect: !NoBundleEffect.`, then [`apply_effect`] must  be called exactly once on `bundle`
+    /// - If `T: !NoBundleEffect`, then [`apply_effect`] must be called exactly once on `bundle`
     ///   after this function returns before returning to safe code.
     /// - The value pointed to by `bundle` must not be accessed for anything other than [`apply_effect`]
     ///   or dropped.
@@ -177,7 +177,7 @@ impl<'w> BundleSpawner<'w> {
 
     /// # Safety
     /// - `T` must match this [`BundleSpawner`]'s type
-    /// - If `T::Effect: !NoBundleEffect.`, then [`apply_effect`] must  be called exactly once on `bundle`
+    /// - If `T: !NoBundleEffect`, then [`apply_effect`] must be called exactly once on `bundle`
     ///   after this function returns before returning to safe code.
     /// - The value pointed to by `bundle` must not be accessed for anything other than [`apply_effect`]
     ///   or dropped.
